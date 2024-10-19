@@ -1,44 +1,76 @@
 import { NextFunction, Request, Response } from "express";
-import { validationResult, body } from 'express-validator'
+import { validationResult, body, ValidationChain } from 'express-validator';
 import { StatusCodes } from 'http-status-codes';
 
-const validate = (validations: any[]) => {
+/**
+ * Middleware to handle validation results for requests.
+ * @param validations Array of validation chains to run
+ * @returns Express middleware function that runs the validations and handles errors.
+ */
+const validate = (validations: ValidationChain[]) => {
     return async (req: Request, res: Response, next: NextFunction) => {
+        // Run each validation
         for (let validation of validations) {
-            const result = await validation.run(req);
-            if (result.errors.length) break;
+            await validation.run(req); // Removed direct access to 'errors'
         }
 
+        // Gather all validation errors
         const errors = validationResult(req);
         if (errors.isEmpty()) {
-            return next();
+            return next(); // Proceed to the next middleware if no errors
         }
 
-        return res.json({ st: false, statusCode: StatusCodes.BAD_REQUEST, errors: errors.array() });
+        // Return validation errors as response
+        return res.status(StatusCodes.BAD_REQUEST).json({
+            success: false,
+            statusCode: StatusCodes.BAD_REQUEST,
+            errors: errors.array(),
+        });
     };
 };
 
+/**
+ * Validator for user sign-up.
+ * Validates:
+ *  - Username is not empty
+ *  - Email is not empty and is valid
+ *  - Password meets the required strength criteria
+ */
 export const userSignUpValidator = validate([
-    body('username', 'username does not Empty').not().isEmpty(),
-    body('email', 'email does not Empty').not().isEmpty(),
-    body('email', 'Invalid email').isEmail(),
-    body('password', 'password required min 1 lowercase,1 uppercase,1 number,1 symbol and 6 character length').isStrongPassword({
-        minLength: 6,
-        minLowercase: 1,
-        minUppercase: 1,
-        minNumbers: 1,
-        minSymbols: 1,
-    }),
+    body('username')
+        .notEmpty().withMessage('Username must not be empty'),
+
+    body('email')
+        .notEmpty().withMessage('Email must not be empty')
+        .isEmail().withMessage('Invalid email address'),
+
+    body('password')
+        .isStrongPassword({
+            minLength: 6,
+            minLowercase: 1,
+            minUppercase: 1,
+            minNumbers: 1,
+            minSymbols: 1,
+        }).withMessage('Password must include at least 1 lowercase, 1 uppercase, 1 number, 1 symbol, and be at least 6 characters long'),
 ]);
 
+/**
+ * Validator for user sign-in.
+ * Validates:
+ *  - Email is not empty and is valid
+ *  - Password meets the required strength criteria
+ */
 export const userSignInValidator = validate([
-    body('email', 'email does not Empty').not().isEmpty(),
-    body('email', 'Invalid email').isEmail(),
-    body('password', 'password required min 1 lowercase,1 uppercase,1 number,1 symbol and 6 character length').isStrongPassword({
-        minLength: 6,
-        minLowercase: 1,
-        minUppercase: 1,
-        minNumbers: 1,
-        minSymbols: 1,
-    }),
+    body('email')
+        .notEmpty().withMessage('Email must not be empty')
+        .isEmail().withMessage('Invalid email address'),
+
+    body('password')
+        .isStrongPassword({
+            minLength: 6,
+            minLowercase: 1,
+            minUppercase: 1,
+            minNumbers: 1,
+            minSymbols: 1,
+        }).withMessage('Password must include at least 1 lowercase, 1 uppercase, 1 number, 1 symbol, and be at least 6 characters long'),
 ]);

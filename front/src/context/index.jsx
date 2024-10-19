@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect } from 'react';
 import io from "socket.io-client";
-import { WSS_URL } from "../env"
+import { BASE_URL } from "../env"
 import Swal from 'sweetalert2';
 import PropTypes from 'prop-types';
 
@@ -27,7 +27,7 @@ export const MyContextProvider = ({ children }) => {
     useEffect(() => {
         // Socket connect using token
         if (session?.token) {
-            const newSocket = io(`${WSS_URL}`, {
+            const newSocket = io(`${BASE_URL}`, {
                 autoConnect: true,
                 extraHeaders: {
                     authorization: session?.token

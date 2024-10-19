@@ -1,21 +1,27 @@
 import React, { useEffect, useContext } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { z } from "zod";
-import { MyContext } from '../../context/index';
+import { MyContext } from "../../context";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import Swal from 'sweetalert2';
-
-import { BASE_URL } from "../../env"
+import Swal from "sweetalert2";
+import { BASE_URL } from "../../env";
 
 // Define the schema using Zod
 const loginSchema = z.object({
   email: z.string().email("Invalid email format"),
-  password: z.string().min(6, "Password must be at least 6 characters long"),
+  password: z
+  .string()
+  .min(6, "Password must be at least 6 characters long")
+  .regex(/[a-z]/, "Password must contain at least 1 lowercase letter")
+  .regex(/[A-Z]/, "Password must contain at least 1 uppercase letter")
+  .regex(/\d/, "Password must contain at least 1 number")
+  .regex(/[!@#$%^&*(),.?":{}|<>]/, "Password must contain at least 1 symbol")
 });
 
 type LoginFormInputs = z.infer<typeof loginSchema>;
+
 const Login = () => {
   const navigate = useNavigate();
   const { login, session }: any = useContext(MyContext);
@@ -29,69 +35,54 @@ const Login = () => {
     resolver: zodResolver(loginSchema),
   });
 
+  // Handle login submission
   const handleLogin: SubmitHandler<LoginFormInputs> = async (data) => {
-
-
     try {
-      const res: any = await axios.post(`${BASE_URL}/api/signin`, data);
-      if (res?.data?.st) {
-        Swal.fire({
-          title: 'Success!',
-          text: res?.data?.msg,
-          icon: 'success',
-          showConfirmButton: false,
-          timer: 1500
+      const response = await axios.post(`${BASE_URL}/api/signin`, data);
 
+      const { success, data: userData, msg, errors: apiErrors } = response.data;
+
+      if (success) {
+        Swal.fire({
+          title: "Success!",
+          text: msg,
+          icon: "success",
+          showConfirmButton: false,
+          timer: 1500,
         });
-        login(res?.data?.data)
+
+        login(userData);
         navigate("/");
       } else {
-        if (res?.data?.errors?.length > 0) {
-          Swal.fire({
-            title: 'Error!',
-            text: res?.data?.errors[0].msg,
-            icon: 'error',
-            showConfirmButton: false,
-            timer: 1500
-
-          });
-
-        } else {
-          Swal.fire({
-            title: 'Error!',
-            text: "Something went wrong or Email or Password wrong",
-            icon: 'error',
-            showConfirmButton: false,
-            timer: 1500
-
-          });
-        }
+        const errorMessage = apiErrors?.length ? apiErrors[0].msg : msg;
+        Swal.fire({
+          title: "Error!",
+          text: errorMessage,
+          icon: "error",
+          showConfirmButton: false,
+          timer: 1500,
+        });
       }
-    } catch (error) {
-      console.log('error::: ', error);
+    } catch (error: any) {
       Swal.fire({
-        title: 'Error!',
-        text: "Something went wrong",
-        icon: 'error',
+        title: "Error!",
+        text: error?.message || "An unexpected error occurred.",
+        icon: "error",
         showConfirmButton: false,
-        timer: 1500
-
+        timer: 1500,
       });
     }
   };
 
-  const handleSignupRedirect = () => {
-    navigate("/SignUp");
-  };
-
+  // Redirect if already logged in
   useEffect(() => {
     if (session?.token) {
       navigate("/");
     }
-  }, [])
+  }, [session, navigate]);
 
   return (
-    <section className="text-gray-400 items-center justify-center body-font">
+    <section className="text-gray-400 flex items-center justify-center body-font">
       <div className="container px-5 py-24 mx-auto">
         <div className="max-w-md mx-auto bg-white rounded-lg shadow-lg p-8">
           <h2 className="text-2xl font-bold mb-5">Login</h2>
@@ -103,12 +94,14 @@ const Login = () => {
               <input
                 type="email"
                 {...register("email")}
-                className={`w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none ${errors.email ? "border-red-500" : "border-gray-300"
-                  }`}
-                required
+                className={`w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none ${
+                  errors.email ? "border-red-500" : "border-gray-300"
+                }`}
               />
               {errors.email && (
-                <span className="text-red-500 text-xs">{errors.email.message}</span>
+                <span className="text-red-500 text-xs">
+                  {errors.email.message}
+                </span>
               )}
             </div>
             <div className="mb-4">
@@ -118,12 +111,14 @@ const Login = () => {
               <input
                 type="password"
                 {...register("password")}
-                className={`w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none ${errors.password ? "border-red-500" : "border-gray-300"
-                  }`}
-                required
+                className={`w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none ${
+                  errors.password ? "border-red-500" : "border-gray-300"
+                }`}
               />
               {errors.password && (
-                <span className="text-red-500 text-xs">{errors.password.message}</span>
+                <span className="text-red-500 text-xs">
+                  {errors.password.message}
+                </span>
               )}
             </div>
             <button
@@ -136,7 +131,7 @@ const Login = () => {
           <p className="mt-4">
             Don't have an account?{" "}
             <button
-              onClick={handleSignupRedirect}
+              onClick={() => navigate("/SignUp")}
               className="text-blue-500 hover:underline"
             >
               Sign up
