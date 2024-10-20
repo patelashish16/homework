@@ -2,6 +2,10 @@
 
 ### `npm i`
 Install depandency for setup project 
+### `setup enviorment variable`
+set backend url in env file 
+for ex: VITE_APP_BASE_URL=http://localhost:3003
+
 ### `npm run dev`
 
 Runs the app in the development mode.\

@@ -1,7 +1,7 @@
 import React, { useContext, useState } from "react";
 import { MyContext } from "../context";
 import { products } from "../initials";
-import { Checkbox } from 'semantic-ui-react';
+import { Checkbox, CheckboxProps } from 'semantic-ui-react';
 
 // Coin Icons
 import BTC_Icon from '../assets/coins/btc.png';
@@ -21,19 +21,20 @@ const SubscriptionComponent: React.FC = () => {
   const { subscribedProducts, unsubscribe, subscribe } = useContext(MyContext);
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
 
-  const handleCheckboxChange = (_: React.ChangeEvent<HTMLInputElement>, data: any) => {
-    const { value } = data;
+  // Corrected onChange function type to match Semantic UI's requirements
+  const handleCheckboxChange = (_: React.FormEvent<HTMLInputElement>, data: CheckboxProps) => {
+    const { value, checked } = data;
 
-    if (selectedOptions.includes(value)) {
+    if (checked) {
+      // Subscribe to product
+      setSelectedOptions(prev => [...prev, value as string]);
+      if (!subscribedProducts.includes(value as string)) {
+        subscribe(value as string);
+      }
+    } else {
       // Unsubscribe from product
       setSelectedOptions(prev => prev.filter(option => option !== value));
-      unsubscribe(value);
-    } else {
-      // Subscribe to product
-      setSelectedOptions(prev => [...prev, value]);
-      if (!subscribedProducts.includes(value)) {
-        subscribe(value);
-      }
+      unsubscribe(value as string);
     }
   };
 

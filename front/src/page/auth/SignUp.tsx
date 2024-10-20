@@ -3,9 +3,9 @@ import { useForm, SubmitHandler } from "react-hook-form";
 import { useNavigate, Link } from "react-router-dom";
 import { SignUpFormValues } from "../../interface/interface";
 import axios from "axios";
-import Swal from "sweetalert2";
 import { MyContext } from "../../context/index";
 import { BASE_URL } from "../../env";
+import { notify } from "../../helper/notify";
 
 // User SignUp Component
 const SignUp: React.FC = () => {
@@ -21,35 +21,25 @@ const SignUp: React.FC = () => {
   const onSubmit: SubmitHandler<SignUpFormValues> = async (data) => {
     try {
       const { data: response } = await axios.post(`${BASE_URL}/api/signup`, data);
-      const { success, msg, errors: apiErrors } = response;
+      const { success, msg} = response;
 
       if (success) {
-        Swal.fire({
-          title: "Success!",
-          text: msg,
-          icon: "success",
-          showConfirmButton: false,
-          timer: 1500,
-        });
+        notify(msg,"success")
         navigate("/login");
-      } else {
-        const errorMsg = apiErrors?.length > 0 ? apiErrors[0].msg : "Something went wrong or Email already exists";
-        Swal.fire({
-          title: "Error!",
-          text: errorMsg,
-          icon: "error",
-          showConfirmButton: false,
-          timer: 1500,
-        });
       }
-    } catch (error: any) {
-      Swal.fire({
-        title: "Error!",
-        text: error?.message || "An unexpected error occurred.",
-        icon: "error",
-        showConfirmButton: false,
-        timer: 1500,
-      });
+    } catch (error:any) {
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        const errorMessage = (error.response.data?.errors ? error.response.data?.errors[0].message : error.response.data.msg) || "Something went wrong!";
+        notify(errorMessage, "error");
+      } else if (error.request) {
+        // The request was made but no response was received
+        notify("No response received from the server.", "error");
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        notify("Error in setting up the request.", "error");
+      }
     }
   };
 

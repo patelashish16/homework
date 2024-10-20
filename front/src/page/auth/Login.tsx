@@ -1,12 +1,12 @@
 import React, { useEffect, useContext } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
-import { z } from "zod";
+import { z, ZodError } from "zod";
 import { MyContext } from "../../context";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import Swal from "sweetalert2";
 import { BASE_URL } from "../../env";
+import { notify } from "../../helper/notify";
 
 // Define the schema using Zod
 const loginSchema = z.object({
@@ -39,39 +39,28 @@ const Login = () => {
   const handleLogin: SubmitHandler<LoginFormInputs> = async (data) => {
     try {
       const response = await axios.post(`${BASE_URL}/api/signin`, data);
-
-      const { success, data: userData, msg, errors: apiErrors } = response.data;
-
-      if (success) {
-        Swal.fire({
-          title: "Success!",
-          text: msg,
-          icon: "success",
-          showConfirmButton: false,
-          timer: 1500,
-        });
-
+      const { success, data: userData, msg, } = response.data;
+      if (success && userData) {
+        notify(msg, "success");
         login(userData);
         navigate("/");
-      } else {
-        const errorMessage = apiErrors?.length ? apiErrors[0].msg : msg;
-        Swal.fire({
-          title: "Error!",
-          text: errorMessage,
-          icon: "error",
-          showConfirmButton: false,
-          timer: 1500,
-        });
       }
-    } catch (error: any) {
-      Swal.fire({
-        title: "Error!",
-        text: error?.message || "An unexpected error occurred.",
-        icon: "error",
-        showConfirmButton: false,
-        timer: 1500,
-      });
+    } catch (error:any) {
+      // Handle the error
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        const errorMessage = (error.response.data?.errors ? error.response.data?.errors[0].message : error.response.data.msg) || "Something went wrong!";
+        notify(errorMessage, "error");
+      } else if (error.request) {
+        // The request was made but no response was received
+        notify("No response received from the server.", "error");
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        notify("Error in setting up the request.", "error");
+      }
     }
+
   };
 
   // Redirect if already logged in
@@ -92,11 +81,10 @@ const Login = () => {
                 Email
               </label>
               <input
-                type="email"
+                type="text"
                 {...register("email")}
-                className={`w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none ${
-                  errors.email ? "border-red-500" : "border-gray-300"
-                }`}
+                className={`w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none ${errors.email ? "border-red-500" : "border-gray-300"
+                  }`}
               />
               {errors.email && (
                 <span className="text-red-500 text-xs">
@@ -111,9 +99,8 @@ const Login = () => {
               <input
                 type="password"
                 {...register("password")}
-                className={`w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none ${
-                  errors.password ? "border-red-500" : "border-gray-300"
-                }`}
+                className={`w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none ${errors.password ? "border-red-500" : "border-gray-300"
+                  }`}
               />
               {errors.password && (
                 <span className="text-red-500 text-xs">

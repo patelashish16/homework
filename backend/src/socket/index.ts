@@ -84,13 +84,11 @@ const handleSubscription = (ws: WebSocket, socket: Socket, message: any) => {
             if (error) {
                 socket.emit('connection-response', {
                     type: 'error',
-                    is_token_expire: false,
                     message: 'Subscription failed',
                 });
             } else {
                 socket.emit('connection-response', {
                     type: 'success',
-                    is_token_expire: false,
                     message: 'Subscription successful',
                 });
             }
@@ -98,7 +96,6 @@ const handleSubscription = (ws: WebSocket, socket: Socket, message: any) => {
     } else {
         socket.emit('connection-response', {
             type: 'error',
-            is_token_expire: false,
             message: 'WebSocket not open yet. Subscription queued.',
         });
     }
@@ -115,13 +112,11 @@ const handleUnsubscription = (ws: WebSocket, socket: Socket, message: any) => {
             if (error) {
                 socket.emit('connection-response', {
                     type: 'error',
-                    is_token_expire: false,
                     message: 'Unsubscription failed',
                 });
             } else {
                 socket.emit('connection-response', {
                     type: 'success',
-                    is_token_expire: false,
                     message: 'Unsubscription successful',
                 });
             }
@@ -129,7 +124,6 @@ const handleUnsubscription = (ws: WebSocket, socket: Socket, message: any) => {
     } else {
         socket.emit('connection-response', {
             type: 'error',
-            is_token_expire: false,
             message: 'WebSocket not open. Unsubscription failed.',
         });
     }
@@ -144,7 +138,7 @@ const handleJwtError = (error: any, socket: Socket) => {
             ? 'Invalid token format'
             : 'An error occurred while verifying the token';
 
-        socket.emit('connection-response', {
+        socket.emit('is_authorise', {
             type: 'error',
             is_token_expire: true,
             message: errorMessage,
@@ -152,7 +146,7 @@ const handleJwtError = (error: any, socket: Socket) => {
 
         console.error('JWT verification error:', error.message);
     } else {
-        socket.emit('connection-response', {
+        socket.emit('is_authorise', {
             type: 'error',
             is_token_expire: true,
             message: 'An unknown error occurred',

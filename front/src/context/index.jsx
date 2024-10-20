@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect } from 'react';
 import io from "socket.io-client";
 import { BASE_URL } from "../env"
-import Swal from 'sweetalert2';
+import { notify } from '../helper/notify'
 import PropTypes from 'prop-types';
 
 
@@ -40,6 +40,14 @@ export const MyContextProvider = ({ children }) => {
             });
 
             // data from socket
+            newSocket.on('is_authorise', (data) => {
+                if (data?.is_token_expire === true) {
+                    notify(data?.message, data?.type)
+                    logout()
+                }
+            })
+
+            // data from socket
             newSocket.on('ticker', (data) => {
                 if (data.data?.e === "trade") {
                     setPrices((prevPrices) => ({
@@ -58,16 +66,7 @@ export const MyContextProvider = ({ children }) => {
             });
 
             newSocket.on('connection-response', (data) => {
-                Swal.fire({
-                    title: data?.type,
-                    text: data?.message,
-                    icon: data?.type,
-                    showConfirmButton: false,
-                    timer: 1500
-                });
-                if(data?.is_token_expire === true){
-                    logout()
-                }
+                notify(data?.message, data?.type)
             });
 
             newSocket.on('disconnect', () => {

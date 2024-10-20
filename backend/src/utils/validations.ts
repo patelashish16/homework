@@ -1,76 +1,56 @@
 import { NextFunction, Request, Response } from "express";
-import { validationResult, body, ValidationChain } from 'express-validator';
+import { z, ZodError } from "zod";
 import { StatusCodes } from 'http-status-codes';
 
-/**
- * Middleware to handle validation results for requests.
- * @param validations Array of validation chains to run
- * @returns Express middleware function that runs the validations and handles errors.
- */
-const validate = (validations: ValidationChain[]) => {
-    return async (req: Request, res: Response, next: NextFunction) => {
-        // Run each validation
-        for (let validation of validations) {
-            await validation.run(req); // Removed direct access to 'errors'
-        }
+// Zod schemas for validation
+const userSignUpSchema = z.object({
+  username: z.string().min(1, { message: 'Username must not be empty' }),
+  email: z.string()
+    .min(1, { message: 'Email must not be empty' })
+    .email({ message: 'Invalid email address' }),
+  password: z.string()
+    .min(6, { message: 'Password must be at least 6 characters long' })
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/, {
+      message: 'Password must include at least 1 lowercase, 1 uppercase, 1 number, and 1 symbol.',
+    }),
+});
 
-        // Gather all validation errors
-        const errors = validationResult(req);
-        if (errors.isEmpty()) {
-            return next(); // Proceed to the next middleware if no errors
-        }
+const userSignInSchema = z.object({
+  email: z.string()
+    .min(1, { message: 'Email must not be empty' })
+    .email({ message: 'Invalid email address' }),
+  password: z.string()
+    .min(6, { message: 'Password must be at least 6 characters long' })
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/, {
+      message: 'Password must include at least 1 lowercase, 1 uppercase, 1 number, and 1 symbol.',
+    }),
+});
 
-        // Return validation errors as response
+// Middleware to validate incoming requests
+const validate = (schema: z.ZodSchema<any>) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      // Validate the request body against the Zod schema
+      schema.parse(req.body);
+      return next(); // If validation passes, proceed to the next middleware
+    } catch (error) {
+      if (error instanceof ZodError) {
+        // If validation fails, return a 400 response with error details
         return res.status(StatusCodes.BAD_REQUEST).json({
-            success: false,
-            statusCode: StatusCodes.BAD_REQUEST,
-            errors: errors.array(),
+          success: false,
+          statusCode: StatusCodes.BAD_REQUEST,
+          errors: error.errors, // Zod error details
         });
-    };
+      }
+      // Handle unexpected errors
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: 'Internal server error',
+      });
+    }
+  };
 };
 
-/**
- * Validator for user sign-up.
- * Validates:
- *  - Username is not empty
- *  - Email is not empty and is valid
- *  - Password meets the required strength criteria
- */
-export const userSignUpValidator = validate([
-    body('username')
-        .notEmpty().withMessage('Username must not be empty'),
-
-    body('email')
-        .notEmpty().withMessage('Email must not be empty')
-        .isEmail().withMessage('Invalid email address'),
-
-    body('password')
-        .isStrongPassword({
-            minLength: 6,
-            minLowercase: 1,
-            minUppercase: 1,
-            minNumbers: 1,
-            minSymbols: 1,
-        }).withMessage('Password must include at least 1 lowercase, 1 uppercase, 1 number, 1 symbol, and be at least 6 characters long'),
-]);
-
-/**
- * Validator for user sign-in.
- * Validates:
- *  - Email is not empty and is valid
- *  - Password meets the required strength criteria
- */
-export const userSignInValidator = validate([
-    body('email')
-        .notEmpty().withMessage('Email must not be empty')
-        .isEmail().withMessage('Invalid email address'),
-
-    body('password')
-        .isStrongPassword({
-            minLength: 6,
-            minLowercase: 1,
-            minUppercase: 1,
-            minNumbers: 1,
-            minSymbols: 1,
-        }).withMessage('Password must include at least 1 lowercase, 1 uppercase, 1 number, 1 symbol, and be at least 6 characters long'),
-]);
+// Export validators as middleware
+export const userSignUpValidator = validate(userSignUpSchema);
+export const userSignInValidator = validate(userSignInSchema);

@@ -32,7 +32,8 @@
     "prisma": "^5.20.0",
     "random-js": "^2.1.0",
     "rotating-file-stream": "^3.1.1",
-    "socket.io": "^4.7.2"
+    "socket.io": "^4.7.2",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
